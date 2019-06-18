@@ -5,9 +5,9 @@
 
 
 int main(int argc, char *argv[]) {
-    int threadNum = 4;//线程个数
-    int port  = 8080;//端口号
-    std::string logFile = "/home/liu/server.log";//日志路径
+    int threadNum = 4;
+    int port  = 8080;
+    std::string logFile = "/home/liu/server.log";
     #ifndef _PTHREADS
         std::cout << "_PTHREADS is not defined !" << std::endl;
     #endif

@@ -28,6 +28,7 @@ Server::Server(EventLoop *loop, int threadNum, int port)
 
 void Server::start() {
     eventLoopThreadPool_->start();
+    //acceptChannel_->setEvents(EPOLLIN | EPOLLET | EPOLLONESHOT);
     acceptChannel_->setEvents(EPOLLIN | EPOLLET);
     acceptChannel_->setReadHandler(bind(&Server::handNewConn, this));
     acceptChannel_->setConnHandler(bind(&Server::handThisConn, this));
@@ -55,7 +56,7 @@ void Server::handNewConn() {
         cout << "optval ==" << optval << endl;
         */
         // 限制服务器的最大并发连接数
-	　　//std::cout << "accept_fd: " << accept_fd << std::endl;
+	//std::cout << "accept_fd: " << accept_fd << std::endl;
         if (accept_fd >= MAXFDS)
         {
             close(accept_fd);

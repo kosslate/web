@@ -1,3 +1,5 @@
+// @Author Lin Ya
+// @Email xxbbb@vip.qq.com
 #pragma once
 #include "Thread.h"
 #include "Epoll.h"
@@ -16,19 +18,13 @@ using namespace std;
 class EventLoop
 {
 public:
-    //回调函数
     typedef std::function<void()> Functor;
     EventLoop();
     ~EventLoop();
-    //核心函数
     void loop();
-    //退出事件循环
     void quit();
-    //执行
     void runInLoop(Functor&& cb);
-    //队列等待执行
     void queueInLoop(Functor&& cb);
-    //判断线程号相等
     bool isInLoopThread() const { return threadId_ == CurrentThread::tid(); }
     void assertInLoopThread()
     {
@@ -40,6 +36,7 @@ public:
     }
     void removeFromPoller(shared_ptr<Channel> channel)
     {
+        //shutDownWR(channel->getFd());
         poller_->epoll_del(channel);
     }
     void updatePoller(shared_ptr<Channel> channel, int timeout = 0)

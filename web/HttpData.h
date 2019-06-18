@@ -55,6 +55,7 @@ enum ParseState
     H_END_LF
 };
 
+
 enum ConnectionState
 {
     H_CONNECTED = 0,
@@ -108,8 +109,8 @@ class HttpData : public std::enable_shared_from_this<HttpData>
     EventLoop *loop_;
     std::shared_ptr<Channel> channel_;
     int fd_;
-    Buffer inBuffer_;
-    Buffer outBuffer_;
+    Buffer inBuffer_;//有效数据都是在readIndex到writeIndex之间，也就是readableByte()
+    Buffer outBuffer_;//
     //std::string inBuffer_;
     //std::string outBuffer_;
     bool error_;

@@ -1,3 +1,5 @@
+// @Author Lin Ya
+// @Email xxbbb@vip.qq.com
 #include "EventLoop.h"
 #include "Logging.h"
 #include "Util.h"
@@ -31,12 +33,13 @@ EventLoop::EventLoop()
 {
     if (t_loopInThisThread)
     {
-        LOG << "Another EventLoop " << t_loopInThisThread << " exists in this thread " << threadId_;
+        //LOG << "Another EventLoop " << t_loopInThisThread << " exists in this thread " << threadId_;
     }
     else
     {
         t_loopInThisThread = this;
     }
+    //pwakeupChannel_->setEvents(EPOLLIN | EPOLLET | EPOLLONESHOT);
     pwakeupChannel_->setEvents(EPOLLIN | EPOLLET);
     pwakeupChannel_->setReadHandler(bind(&EventLoop::handleRead, this));
     pwakeupChannel_->setConnHandler(bind(&EventLoop::handleConn, this));
@@ -61,7 +64,7 @@ EventLoop::~EventLoop()
 void EventLoop::wakeup()
 {
     uint64_t one = 1;
-    ssize_t n = writen(wakeupFd_, (char*)(&one), sizeof one);
+    ssize_t n = writen(wakeupFd_, (&one), sizeof one);
     if (n != sizeof one)
     {
         LOG<< "EventLoop::wakeup() writes " << n << " bytes instead of 8";
@@ -76,12 +79,12 @@ void EventLoop::handleRead()
     {
         LOG << "EventLoop::handleRead() reads " << n << " bytes instead of 8";
     }
+    //pwakeupChannel_->setEvents(EPOLLIN | EPOLLET | EPOLLONESHOT);
     pwakeupChannel_->setEvents(EPOLLIN | EPOLLET);
 }
 
 void EventLoop::runInLoop(Functor&& cb)
 {
-    //如果线程号相等，代表在一个事件循环中，直接执行，否则加入队列，等待执行
     if (isInLoopThread())
         cb();
     else
@@ -99,14 +102,13 @@ void EventLoop::queueInLoop(Functor&& cb)
         wakeup();
 }
 
-//核心函数
 void EventLoop::loop()
 {
     assert(!looping_);
     assert(isInLoopThread());
     looping_ = true;
     quit_ = false;
-    LOG << "EventLoop " << this << " start looping";
+    //LOG_TRACE << "EventLoop " << this << " start looping";
     std::vector<SP_Channel> ret;
     while (!quit_)
     {

@@ -121,7 +121,7 @@ HttpData::HttpData(EventLoop *loop, int connd) :
     loop_(loop), channel_(new Channel(loop, connd)),
     fd_(connd), error_(false), connectionState_(H_CONNECTED),
     method_(METHOD_GET), HTTPVersion_(HTTP_11), nowReadPos_(0),
-    state_(STATE_PARSE_URI), hState_(H_START), keepAlive_(false) {
+    state_(STATE_PARSE_URI), keepAlive_(false) {
         //将单次事件循环和当前数据处理绑定
         channel_->setReadHandler(bind(&HttpData::handleRead, this));
         channel_->setWriteHandler(bind(&HttpData::handleWrite, this));
@@ -133,7 +133,7 @@ void HttpData::reset() {
     path_.clear();
     nowReadPos_ = 0;
     state_ = STATE_PARSE_URI;
-    hState_ = H_START;
+    //hState_ = H_START;
     headers_.clear();
     //keepAlive_ = false;
     if (timer_.lock()) {
@@ -167,7 +167,7 @@ void HttpData::handleRead() {
             break;
         }
         else if (n == 0) {
-	    connectionState_ = H_DISCONNECTING;
+	        connectionState_ = H_DISCONNECTING;
             break;
         }
         if (state_ == STATE_PARSE_URI) {
@@ -177,7 +177,7 @@ void HttpData::handleRead() {
             }
             else if (flag == PARSE_URI_ERROR) {
                 perror("2");
-		LOG << "FD = " << fd_ << "," << inBuffer_.peek() << "******";
+		        LOG << "FD = " << fd_ << "," << inBuffer_.peek() << "******";
                 inBuffer_.retrieveAll();
                 error_ = true;
                 handleError(fd_, 400, "Bad Request");
@@ -233,7 +233,7 @@ void HttpData::handleRead() {
         }
     }while(false);
     if (!error_) {
-        if (outBuffer_.writeableByte() > 0) {
+        if (outBuffer_.readableByte() > 0) {
             handleWrite();
         }
         if (!error_ && state_ == STATE_FINISH) {
@@ -256,15 +256,16 @@ void HttpData::handleWrite() {
     if (!error_ && connectionState_ != H_DISCONNECTED) {
         //获取当前事件
         __uint32_t &events_ = channel_->getEvents();
-        //ssize_t n = writen(fd_, outBuffer_.peek(), outBuffer_.readableByte());
-        if (writen(fd_, outBuffer_.peek(), outBuffer_.readableByte()) < 0) {
+        ssize_t n = writen(fd_, outBuffer_.peek(), outBuffer_.readableByte());
+        if (n < 0) {
             perror("witten");
             events_ = 0;
             error_ = true;
         }
-	//outBuffer_.retrieve(n);
+	    outBuffer_.retrieve(n);
+        cout << "wirte: " << outBuffer_.writeableByte() << endl;
         //可写的数据大于０,事件设置为有数据需要写
-        if (outBuffer_.writeableByte() > 0) {
+        if (outBuffer_.readableByte() > 0) {
             events_ |= EPOLLOUT;
         }
     }
@@ -313,7 +314,7 @@ void HttpData::handleConn() {
     }
 }
 
-//解析URI
+
 URIState HttpData::parseURI() {
     Buffer buf = inBuffer_;
     const char* begin = buf.peek();
@@ -321,6 +322,7 @@ URIState HttpData::parseURI() {
     if (end) {
         const char* start = begin;
         const char* space = find(start, end, ' ');
+	//cout << "space: " << space << endl;
         string request_line(start, space);
         bool succeed = false;
         int posGet = request_line.find("GET");
@@ -341,15 +343,23 @@ URIState HttpData::parseURI() {
         }
         start = space + 1;
         space = std::find(start, end, ' ');
+	//cout << "space: " << space << endl;
         if (space != end ) {
-            const char* question = find(start, space, '?');
-            if (question != space) {
-                string m(start, question);
+            if (start + 1 != space) {
+	            string m(start + 1, space);
                 fileName_ = m;
+                cout << "m: " << m << endl;
+                const char* question = std::find(start, space, '?');
+                if (question != space) {
+		        //cout << "file: " << m << endl;
+                    string u(question, space);
+                    fileName_ = m + u;
+                }
             }
             else {
                 fileName_ = "index.html";
             }
+            cout << "file: " << fileName_ << endl;
             start = space + 1;
             succeed = end - start == 8 && equal(start, end - 1, "HTTP/1.");
             if (succeed) {
@@ -367,9 +377,7 @@ URIState HttpData::parseURI() {
             else {
                 return PARSE_URI_ERROR;
             }
-
         }
-	
         return PARSE_URI_SUCCESS;
     }
     return PARSE_URI_AGAIN;
@@ -436,7 +444,7 @@ AnalysisState HttpData::analysisRequest() {
 
         //回声测试
         if (fileName_ == "hello") {
-            strcpy(outBuffer_.beginWrite(), "HTTP/1.1 200 OK\r\nContent-type: text/plain\r\n\r\nHello World");
+            outBuffer_.append("HTTP/1.1 200 OK\r\nContent-type: text/plain\r\n\r\nHello World");
             return ANALYSIS_SUCCESS;
         }
         if (fileName_ == "favicon.ico") {
@@ -446,7 +454,7 @@ AnalysisState HttpData::analysisRequest() {
 
             header += "\r\n";
             //拷贝到开始写的位置
-            strcpy(outBuffer_.beginWrite(),header.c_str());
+            outBuffer_.append(header);
             //在后面加上字符串数据
             outBuffer_.append(string(favicon, favicon + sizeof favicon));
             return ANALYSIS_SUCCESS;
@@ -518,7 +526,7 @@ AnalysisState HttpData::analysisRequest() {
         char *src_addr = static_cast<char*>(mmapRet);
         outBuffer_.append(string(src_addr, src_addr + sbuf.st_size));
 	
-	//cout << "out_buffer: " << outBuffer_.peek() << endl;
+	    cout << "out_buffer: " << outBuffer_.peek() << endl;
         munmap(mmapRet, sbuf.st_size);
         return ANALYSIS_SUCCESS;
     }

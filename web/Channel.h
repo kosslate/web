@@ -16,7 +16,7 @@ class Channel {
     EventLoop *loop_;
     int fd_;
 
-    __uint32_t events_;//等待事件
+    __uint32_t events_;
     __uint32_t revents_;//活跃事件
     __uint32_t lastEvents_;
 

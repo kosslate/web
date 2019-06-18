@@ -2,7 +2,7 @@
 #include <unistd.h>  //close open 函数
 #include <fcntl.h>
 #include <signal.h>
-#include <errno.h>
+//#include <errno.h>
 #include <string.h> //bzero
 #include <sys/socket.h> //socket
 #include <netinet/in.h> //sockaddr_in
@@ -18,66 +18,12 @@ void shutdownWR(int fd)
 }
 
 ssize_t readn(int fd, void *buff, size_t n) {
-    size_t nleft = n;
-    ssize_t nread = 0;
-    ssize_t readSum = 0;
-    char *ptr = (char*)buff;
-    while (nleft > 0)
-    {
-        if ((nread = read(fd, ptr, nleft)) < 0)
-        {
-            if (errno == EINTR)
-                nread = 0;
-            else if (errno == EAGAIN)
-            {
-                return readSum;
-            }
-            else
-            {
-                return -1;
-            }  
-        }
-        else if (nread == 0)
-            break;
-        readSum += nread;
-        nleft -= nread;
-        ptr += nread;
-    }
-    return readSum;
+   return read(fd, buff, n);
 }
 ssize_t readvn(int sockfd, const struct iovec *iov, int iovcnt) {
     return readv(sockfd, iov, iovcnt);
 }
-ssize_t writen(int fd, void *buff, size_t n) {
-    size_t nleft = n;
-    ssize_t nwritten = 0;
-    ssize_t writeSum = 0;
-    char *ptr = (char*)buff;
-    while (nleft > 0)
-    {
-        if ((nwritten = write(fd, ptr, nleft)) <= 0)
-        {
-            if (nwritten < 0)
-            {
-                if (errno == EINTR)
-                {
-                    nwritten = 0;
-                    continue;
-                }
-                else if (errno == EAGAIN)
-                {
-                    return writeSum;
-                }
-                else
-                    return -1;
-            }
-        }
-        writeSum += nwritten;
-        nleft -= nwritten;
-        ptr += nwritten;
-    }
-    return writeSum;
-}
+
 
 ssize_t writen(int fd, const void *buf, size_t count) {
     return write(fd, buf, count);
