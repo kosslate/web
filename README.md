@@ -9,5 +9,4 @@
 ## Technical points <br>
   改进了输入输出buff，利用muduo中的vector<char>模式　<br>
 ## 参考
-https://github.com/linyacool/WebServer <br>
 muduo <br>
